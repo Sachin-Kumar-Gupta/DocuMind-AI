@@ -1,0 +1,15 @@
+streamlit
+chromadb
+sentence-transformers
+transformers
+PyPDF2
+openai
+torch
+numpy
+pandas
+pdfplumber
+accelerate
+protobuf
+tqdm
+typing-extensions
+
