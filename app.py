@@ -9,7 +9,6 @@ import time
 st.set_page_config(page_title="AI Document Q&A Assistant", page_icon="🤖", layout="wide")
 
 st.title("🤖 AI Document Q&A Assistant")
-st.subtitle("Created by Sachin Kumar Gupta")
 st.markdown("""
 Welcome to **AI Document Assistant** — a smart RAG-powered chatbot that can answer your questions based on your uploaded PDF.  
 Upload your document, choose your mode, and chat naturally with your document! 🚀
@@ -100,4 +99,5 @@ else:
 # ----------------------------
 st.markdown("---")
 st.caption("Built with ❤️ by Sachin Kumar Gupta | Powered by RAG, Sentence Transformers & Streamlit")
+
 
