@@ -152,9 +152,9 @@ def generate_answer_openai(question: str, context_chunks: List[str], user_api_ke
 
     # ✅ Use user-provided key if available
     if user_api_key:
-        openai.api_key = user_api_key
+        OpenAI.api_key = user_api_key
     elif os.getenv("OPENAI_API_KEY"):
-        openai.api_key = os.getenv("OPENAI_API_KEY")
+        OpenAI.api_key = os.getenv("OPENAI_API_KEY")
     else:
         raise ValueError("No OpenAI API key provided.")
     client = OpenAI(api_key=user_api_key or os.getenv("OPENAI_API_KEY"))
