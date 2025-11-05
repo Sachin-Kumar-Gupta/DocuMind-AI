@@ -5,7 +5,7 @@ import os
 import re
 import textwrap
 import chromadb
-import openai
+from openai import OpenAI
 import pdfplumber
 from chromadb import PersistentClient
 from typing import List
@@ -157,8 +157,8 @@ def generate_answer_openai(question: str, context_chunks: List[str], user_api_ke
         openai.api_key = os.getenv("OPENAI_API_KEY")
     else:
         raise ValueError("No OpenAI API key provided.")
-
-    resp = openai.ChatCompletion.create(
+    client = OpenAI(api_key=user_api_key or os.getenv("OPENAI_API_KEY"))
+    resp = client.chat.completions.create(
         model=OPENAI_MODEL,
         messages=[
             {"role": "system", "content": system_prompt},
