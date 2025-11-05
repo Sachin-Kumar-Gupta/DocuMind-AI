@@ -32,3 +32,78 @@ It uses **Sentence Transformers**, **ChromaDB**, and **Streamlit** to create a s
 | PDF Reader | 📄 pdfplumber |
 
 ---
+## 🧩 Example Workflow
+
+1. Upload your PDF
+
+2. Choose OpenAI mode (enter your API key) or Local mode
+
+3. Ask questions like:
+    - What are the key recommendations in this report?
+    - Does the document discuss data privacy?
+
+4. Get accurate, context-based answers 🎯
+
+
+## 📦 Project Structure
+
+📁 DocuMind-AI/
+
+│
+├── app.py                   # Streamlit UI
+
+├── RAG_chatbot.py           # Core RAG pipeline
+
+├── requirements.txt          # Dependencies
+
+├── README.md                 # Documentation
+
+├── .gitignore                # Ignore cache, models, etc.
+
+│
+
+├── 📁 uploaded_docs/          # Uploaded PDFs (auto-created)
+
+├── 📁 chroma_report_db/       # Chroma vector store (auto-created)
+
+└── 📄 sample.pdf (optional)
+
+
+## 💬 Modes Explained
+
+
+| Mode                | Description                      | Accuracy | Cost |
+| ------------------- | -------------------------------- | -------- | ---- |
+| **OpenAI GPT Mode** | Uses GPT-3.5/4 with user API key | ⭐⭐⭐⭐     | Paid |
+| **Local Mode (T5)** | Runs Flan-T5 locally             | ⭐⭐       | Free |
+
+
+**💡 Your OpenAI API key is never stored. It’s used only during your active session.**
+
+
+## 🧑‍💻 Author
+
+
+**👤 Sachin Kumar Gupta**
+
+
+Data Analyst & AI Developer
+
+
+🔗 [LinkedIn](linkedin.com/in/sachingupta-ds)
+ | [GitHub](https://github.com/Sachin-Kumar-Gupta)
+
+
+ ## **❤️ Acknowledgements**
+
+**Built using:**
+
+- Streamlit
+
+- ChromaDB
+
+- Sentence Transformers
+
+- Hugging Face Transformers
+
+- OpenAI API
