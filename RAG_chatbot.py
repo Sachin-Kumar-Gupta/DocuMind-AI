@@ -178,7 +178,7 @@ def generate_answer_openai(question: str, context_chunks: List[str], user_api_ke
 
 # Answer generation using Hugging Face T5 Local Fallback model
 @st.cache_resource(show_spinner=False)
-def get_hf_model(gen_model_name="google/flan-t5-large"):
+def get_hf_model(gen_model="google/flan-t5-large"):
     from transformers import AutoTokenizer, AutoModelForSeq2SeqLM, pipeline
     tokenizer = AutoTokenizer.from_pretrained(gen_model_name)
     model = AutoModelForSeq2SeqLM.from_pretrained(gen_model_name)
