@@ -12,6 +12,7 @@ from typing import List
 from PyPDF2 import PdfReader
 from sentence_transformers import SentenceTransformer
 from sentence_transformers import CrossEncoder
+import streamlit as st
 
 # lazy global to avoid repeated loads
 _ce_model = None
@@ -67,7 +68,12 @@ def chunk_text(text: str, chunk_size: int = 800, overlap: int = 200) -> List[str
 
 # Embeddings
 #print("Loading embedding model...")
-model = SentenceTransformer(embed_model)
+@st.cache_resource(show_spinner=False)  # It will help in loading model again and again
+def get_embedding_model(embed_model_name="BAAI/bge-large-en"):
+    model = SentenceTransformer(embed_model_name)
+    return model
+    
+model = get_embedding_model(embed_model)
 #print("Done")
 
 def embed_texts(texts: List[str]) -> List[List[float]]:
@@ -171,13 +177,15 @@ def generate_answer_openai(question: str, context_chunks: List[str], user_api_ke
     return postprocess_answer(ans)
 
 # Answer generation using Hugging Face T5 Local Fallback model
-from transformers import AutoTokenizer, AutoModelForSeq2SeqLM, pipeline
-#gen_model = "google/flan-t5-base"
-gen_model = "google/flan-t5-large"
-print("Loading HF Generation Model ......")
-hf_tokenizer = AutoTokenizer.from_pretrained(gen_model)
-hf_model = AutoModelForSeq2SeqLM.from_pretrained(gen_model)
-hf_pipe = pipeline("text-generation",model = hf_model, max_new_tokens=MAX_NEW_TOKENS, tokenizer = hf_tokenizer, device = -1)
+@st.cache_resource(show_spinner=False)
+def get_hf_model(gen_model_name="google/flan-t5-large"):
+    from transformers import AutoTokenizer, AutoModelForSeq2SeqLM, pipeline
+    tokenizer = AutoTokenizer.from_pretrained(gen_model_name)
+    model = AutoModelForSeq2SeqLM.from_pretrained(gen_model_name)
+    pipe = pipeline("text-generation", model=model,max_new_tokens=MAX_NEW_TOKENS, tokenizer=tokenizer, device=-1)
+    return tokenizer, model, pipe
+
+hf_tokenizer, hf_model, hf_pipe = get_hf_model(gen_model)
 
 # ---------------------------
 # 6b) Answer generation (Option B: HF Flan-T5 local fallback)
