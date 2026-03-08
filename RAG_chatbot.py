@@ -177,7 +177,7 @@ gen_model = "google/flan-t5-large"
 print("Loading HF Generation Model ......")
 hf_tokenizer = AutoTokenizer.from_pretrained(gen_model)
 hf_model = AutoModelForSeq2SeqLM.from_pretrained(gen_model)
-hf_pipe = pipeline("text2text-generation",model = hf_model, max_new_tokens=MAX_NEW_TOKENS, tokenizer = hf_tokenizer, device = -1)
+hf_pipe = pipeline("text-generation",model = hf_model, max_new_tokens=MAX_NEW_TOKENS, tokenizer = hf_tokenizer, device = -1)
 
 # ---------------------------
 # 6b) Answer generation (Option B: HF Flan-T5 local fallback)
