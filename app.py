@@ -43,7 +43,7 @@ st.divider()
 
 st.subheader("🧪 Try a Demo Document")
 
-demo_pdf_path = "docs/Reports_on_ai.pdf"
+demo_pdf_path = "uploaded_docs/Report_on_AI.pdf"
 
 if os.path.exists(demo_pdf_path):
 
@@ -171,6 +171,7 @@ if st.button("🧹 Reset Chat"):
 # ----------------------------
 st.markdown("---")
 st.caption("Built with ❤️ by Sachin Kumar Gupta | Powered by RAG, Sentence Transformers & Streamlit")
+
 
 
 
