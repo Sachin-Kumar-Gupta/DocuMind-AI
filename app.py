@@ -3,6 +3,38 @@ from RAG_chatbot import chatbot, demo_query, answer_with_sources, generate_docum
 import os
 import time
 
+# ---------------------------
+# 🔹 Process PDF (with caching)
+# ---------------------------
+def process_pdf(file_path):
+    st.session_state["current_pdf"] = file_path
+    if "processed_docs" not in st.session_state:
+        st.session_state["processed_docs"] = {}
+    if file_path not in st.session_state["processed_docs"]:
+        with st.spinner("Processing document..."):
+            chatbot(file_path)
+            st.session_state["processed_docs"][file_path] = True
+    else:
+        st.info("✅ Document already processed")
+
+# ----------------------------
+# 🔹 Cached answers per session
+# ----------------------------
+def get_answer_cached(question, top_k=3, use_openai=False, user_api_key=None):
+    if "answer_cache" not in st.session_state:
+        st.session_state["answer_cache"] = {}
+    cache_key = f"{question}_{top_k}_{use_openai}"
+    if cache_key in st.session_state["answer_cache"]:
+        return st.session_state["answer_cache"][cache_key]
+    ans = demo_query(
+        question,
+        top_k=top_k,
+        use_openai=use_openai,
+        user_api_key=user_api_key
+    )
+    st.session_state["answer_cache"][cache_key] = ans
+    return ans
+
 # ----------------------------
 # 🎨 Streamlit Page Config
 # ----------------------------
@@ -41,27 +73,22 @@ else:
 
 st.divider()
 
+# ----------------------------
+# 🧪 Demo PDF
+# ----------------------------
 st.subheader("🧪 Try a Demo Document")
-
 demo_pdf_path = "uploaded_docs/Report_on_AI.pdf"
 
 if os.path.exists(demo_pdf_path):
-
     if st.button("📄 Load Demo Document"):
-
         if not st.session_state.get("demo_loaded"):
-            with st.spinner("Processing demo document..."):
-                chatbot(demo_pdf_path)
-    
+            process_pdf(demo_pdf_path)
             st.session_state["demo_loaded"] = True
-    
-            st.success("Demo document ready for questions!")
+            st.success("Demo document loaded!")
         else:
             st.info("Demo document already loaded.")
-
 else:
     st.warning("Demo PDF not found. Add one to demo_docs folder.")
-
 
 
 # ----------------------------
@@ -70,7 +97,7 @@ else:
 st.subheader("📤 Upload your document")
 
 uploaded_file = st.file_uploader("Upload a PDF file", type=["pdf"])
-if uploaded_file or st.session_state.get("demo_loaded") :
+if uploaded_file :
     file_path = os.path.join("uploaded_docs", uploaded_file.name)
     os.makedirs("uploaded_docs", exist_ok=True)
 
@@ -91,9 +118,9 @@ if uploaded_file or st.session_state.get("demo_loaded") :
         time.sleep(0.5)
     
     with st.spinner("Creating embeddings & index..."):
-        chatbot(file_path)
+        process_pdf(file_path)
         progress.progress(100)
-
+    
     st.success("🎯 Document processed and ready for chat!")
 
     st.divider()
@@ -129,7 +156,7 @@ if uploaded_file or st.session_state.get("demo_loaded") :
         # Generate bot response
         with st.chat_message("assistant"):
             with st.spinner("🤔 Thinking..."):
-                answer, docs, metas = answer_with_sources(
+                answer, docs, metas = get_answer_cached(
                     user_input,
                     user_api_key=user_api_key if user_api_key else None,
                     top_k=3,
@@ -147,11 +174,16 @@ if uploaded_file or st.session_state.get("demo_loaded") :
 else:
     st.info("📄 Please upload a PDF file to begin.")
 
+# Process demo PDF
+if st.session_state.get("demo_loaded"):
+    process_pdf(demo_pdf_path)
+
+
 st.subheader("📊 Document Insights")
 
-if st.button("Generate Document Summary"):
+if st.button("Generate Document Summary") and st.session_state.get("current_pdf"):
     with st.spinner("Analyzing document..."):
-        summary = generate_document_summary(
+        summary = generate_document_summary(pdf_path = st.session_state["current_pdf"],
             use_openai=True if user_api_key else False,
             user_api_key=user_api_key
         )
@@ -159,7 +191,7 @@ if st.button("Generate Document Summary"):
     st.write(summary)
     st.success("🎯 Document processed and ready for chat!")
 
-    file_size = os.path.getsize(file_path) / 1024
+    file_size = os.path.getsize(st.session_state["current_pdf"]) / 1024
     st.caption(f"Document size: {file_size:.1f} KB")
 
 if st.button("🧹 Reset Chat"):
@@ -171,6 +203,7 @@ if st.button("🧹 Reset Chat"):
 # ----------------------------
 st.markdown("---")
 st.caption("Built with ❤️ by Sachin Kumar Gupta | Powered by RAG, Sentence Transformers & Streamlit")
+
 
 
 
