@@ -185,7 +185,7 @@ def get_hf_model(gen_model="google/flan-t5-large"):
     pipe = pipeline("text-generation", model=model,max_new_tokens=MAX_NEW_TOKENS, tokenizer=tokenizer, device=-1)
     return tokenizer, model, pipe
 
-hf_tokenizer, hf_model, hf_pipe = get_hf_model(gen_model)
+hf_tokenizer, hf_model, hf_pipe = get_hf_model()
 
 # ---------------------------
 # 6b) Answer generation (Option B: HF Flan-T5 local fallback)
