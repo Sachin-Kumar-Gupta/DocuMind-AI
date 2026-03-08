@@ -180,8 +180,8 @@ def generate_answer_openai(question: str, context_chunks: List[str], user_api_ke
 @st.cache_resource(show_spinner=False)
 def get_hf_model(gen_model="google/flan-t5-large"):
     from transformers import AutoTokenizer, AutoModelForSeq2SeqLM, pipeline
-    tokenizer = AutoTokenizer.from_pretrained(gen_model_name)
-    model = AutoModelForSeq2SeqLM.from_pretrained(gen_model_name)
+    tokenizer = AutoTokenizer.from_pretrained(gen_model)
+    model = AutoModelForSeq2SeqLM.from_pretrained(gen_model)
     pipe = pipeline("text-generation", model=model,max_new_tokens=MAX_NEW_TOKENS, tokenizer=tokenizer, device=-1)
     return tokenizer, model, pipe
 
