@@ -17,6 +17,7 @@ def process_pdf(file_path):
     else:
         st.info("✅ Document already processed")
 
+
 # ----------------------------
 # 🔹 Cached answers per session
 # ----------------------------
@@ -26,7 +27,7 @@ def get_answer_cached(question, top_k=3, use_openai=False, user_api_key=None):
     cache_key = f"{question}_{top_k}_{use_openai}"
     if cache_key in st.session_state["answer_cache"]:
         return st.session_state["answer_cache"][cache_key]
-    ans = demo_query(
+    ans = answer_with_sources(
         question,
         top_k=top_k,
         use_openai=use_openai,
@@ -34,6 +35,7 @@ def get_answer_cached(question, top_k=3, use_openai=False, user_api_key=None):
     )
     st.session_state["answer_cache"][cache_key] = ans
     return ans
+
 
 # ----------------------------
 # 🎨 Streamlit Page Config
@@ -57,11 +59,11 @@ Tip: Try asking **summary, key findings, or conclusions**
 """)
 st.divider()
 
+
 # ----------------------------
 # ⚙️ Mode Selection
 # ----------------------------
 st.subheader("⚙️ Choose How You Want to Run the Chatbot")
-
 mode = st.radio("Select Mode:", ["Use OpenAI API (Recommended)", "Use Normal Mode (Local Model)"], index=1)
 user_api_key = None
 
@@ -71,63 +73,47 @@ if mode == "Use OpenAI API (Recommended)":
 else:
     st.warning("⚠️ Local mode may not always be perfectly accurate — use OpenAI mode for professional work.")
 
-st.divider()
 
 # ----------------------------
 # 🧪 Demo PDF
 # ----------------------------
 st.subheader("🧪 Try a Demo Document")
 demo_pdf_path = "uploaded_docs/Report_on_AI.pdf"
+if "demo_loaded" not in st.session_state:
+    st.session_state["demo_loaded"] = False
 
 if os.path.exists(demo_pdf_path):
     if st.button("📄 Load Demo Document"):
-        if not st.session_state.get("demo_loaded"):
+        if not st.session_state["demo_loaded"]:
             process_pdf(demo_pdf_path)
             st.session_state["demo_loaded"] = True
             st.success("Demo document loaded!")
         else:
             st.info("Demo document already loaded.")
 else:
-    st.warning("Demo PDF not found. Add one to demo_docs folder.")
+    st.warning("Demo PDF not found. Add one to uploaded_docs folder.")
 
 
 # ----------------------------
 # 📄 Document Upload
 # ----------------------------
 st.subheader("📤 Upload your document")
-
 uploaded_file = st.file_uploader("Upload a PDF file", type=["pdf"])
-if uploaded_file :
-    file_path = os.path.join("uploaded_docs", uploaded_file.name)
-    os.makedirs("uploaded_docs", exist_ok=True)
 
+if uploaded_file:
+    os.makedirs("uploaded_docs", exist_ok=True)
+    file_path = os.path.join("uploaded_docs", uploaded_file.name)
     with open(file_path, "wb") as f:
         f.write(uploaded_file.getbuffer())
-
     st.success(f"✅ Uploaded `{uploaded_file.name}` successfully!")
-    st.info("🔍 Processing document... Please wait ⏳")
+    process_pdf(file_path)
 
-    progress = st.progress(0)
 
-    with st.spinner("Extracting document text..."):
-        progress.progress(25)
-        time.sleep(0.5)
-    
-    with st.spinner("Chunking document..."):
-        progress.progress(50)
-        time.sleep(0.5)
-    
-    with st.spinner("Creating embeddings & index..."):
-        process_pdf(file_path)
-        progress.progress(100)
-    
-    st.success("🎯 Document processed and ready for chat!")
-
+# ----------------------------
+# 💬 Chat Interface
+# ----------------------------
+if st.session_state.get("current_pdf") or st.session_state.get("demo_loaded"):
     st.divider()
-
-    # ----------------------------
-    # 💬 Chat Interface
-    # ----------------------------
     st.subheader("💬 Chat with your document")
     st.caption("💡 Try asking:")
     st.markdown("""
@@ -136,24 +122,21 @@ if uploaded_file :
     - What conclusions are mentioned?
     """)
 
-    # Initialize session history
+    # Initialize chat history
     if "chat_history" not in st.session_state:
         st.session_state["chat_history"] = []
 
-    # Display all previous messages
+    # Display previous messages
     for chat in st.session_state["chat_history"]:
         with st.chat_message(chat["role"]):
             st.markdown(chat["content"])
 
-    # Input for new user question
+    # Chat input
     user_input = st.chat_input("Ask your question about the document...")
-
     if user_input:
-        # Display user message
         st.chat_message("user").markdown(user_input)
         st.session_state["chat_history"].append({"role": "user", "content": user_input})
 
-        # Generate bot response
         with st.chat_message("assistant"):
             with st.spinner("🤔 Thinking..."):
                 answer, docs, metas = get_answer_cached(
@@ -168,44 +151,35 @@ if uploaded_file :
                     for i, (doc, meta) in enumerate(zip(docs, metas)):
                         st.markdown(f"**Source Chunk {meta['chunk_id']}**")
                         st.write(doc[:500] + "...")
-        # Store bot reply in session
         st.session_state["chat_history"].append({"role": "assistant", "content": answer})
 
-else:
-    st.info("📄 Please upload a PDF file to begin.")
 
-# Process demo PDF
-if st.session_state.get("demo_loaded"):
-    process_pdf(demo_pdf_path)
-
-
+# ----------------------------
+# 📊 Document Insights / Summary
+# ----------------------------
+st.divider()
 st.subheader("📊 Document Insights")
 
 if st.button("Generate Document Summary") and st.session_state.get("current_pdf"):
     with st.spinner("Analyzing document..."):
         summary = generate_document_summary(
+            pdf_path=st.session_state["current_pdf"],
             use_openai=True if user_api_key else False,
             user_api_key=user_api_key
         )
     st.markdown("### 📄 Document Summary")
     st.write(summary)
-    st.success("🎯 Document processed and ready for chat!")
+    st.success("🎯 Document summary generated!")
 
-    file_size = os.path.getsize(st.session_state["current_pdf"]) / 1024
-    st.caption(f"Document size: {file_size:.1f} KB")
 
+# ----------------------------
+# Reset Chat
+# ----------------------------
 if st.button("🧹 Reset Chat"):
     st.session_state["chat_history"] = []
-
 
 # ----------------------------
 # 🧾 Footer
 # ----------------------------
 st.markdown("---")
 st.caption("Built with ❤️ by Sachin Kumar Gupta | Powered by RAG, Sentence Transformers & Streamlit")
-
-
-
-
-
-
