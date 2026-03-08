@@ -253,6 +253,61 @@ def demo_query(q, top_k=2, use_openai=False, user_api_key=None):  # ✅ Added us
     print("\n------------------------\n")
     return ans
 
+# ========================================================
+# 8️ Answer + Sources helper (for UI transparency)
+# ========================================================
+def answer_with_sources(q, top_k=3, use_openai=False, user_api_key=None):
+    """
+    Returns:
+    answer,
+    retrieved_docs,
+    metadata
+    """
+    res = retrieve(q, top_k=top_k)
+    docs = res["documents"][0]
+    metas = res["metadatas"][0]
+
+    if use_openai:
+        ans = generate_answer_openai(q, docs, user_api_key=user_api_key)
+    else:
+        ans = generate_answer_hf(q, docs)
+
+    return ans, docs, metas
+
+# ========================================================
+# 9️ Document Summary
+# ========================================================
+def generate_document_summary(use_openai=False, user_api_key=None):
+
+    # retrieve larger context
+    res = collection.get(include=["documents"])
+    docs = res["documents"][:10]  # first chunks for summary
+    context = "\n\n".join(docs)
+
+    prompt = f"""
+Summarize the following document in clear bullet points.
+
+Document:
+{context}
+
+Summary:
+"""
+
+    if use_openai:
+        client = OpenAI(api_key=user_api_key or os.getenv("OPENAI_API_KEY"))
+        resp = client.chat.completions.create(
+            model=OPENAI_MODEL,
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0,
+            max_tokens=400
+        )
+        return resp["choices"][0]["message"]["content"]
+
+    else:
+        out = hf_pipe(prompt, max_new_tokens=250)[0]["generated_text"]
+        return postprocess_answer(out)
+
+
 #if __name__ == "__main__":
     # Use collection.count() to detect empty store instead of len(collection.get())
 #    needs_build = (not os.path.exists(chroma_dir))
