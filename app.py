@@ -183,7 +183,7 @@ st.subheader("📊 Document Insights")
 
 if st.button("Generate Document Summary") and st.session_state.get("current_pdf"):
     with st.spinner("Analyzing document..."):
-        summary = generate_document_summary(pdf_path = st.session_state["current_pdf"],
+        summary = generate_document_summary(
             use_openai=True if user_api_key else False,
             user_api_key=user_api_key
         )
@@ -203,6 +203,7 @@ if st.button("🧹 Reset Chat"):
 # ----------------------------
 st.markdown("---")
 st.caption("Built with ❤️ by Sachin Kumar Gupta | Powered by RAG, Sentence Transformers & Streamlit")
+
 
 
 
