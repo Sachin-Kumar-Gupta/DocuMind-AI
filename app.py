@@ -5,37 +5,37 @@ import os
 import time
 
 # ---------------------------
-# 🔹 Process PDF (with caching)
+# 🔹 Process PDF (with caching & progress)
 # ---------------------------
 def process_pdf(file_path):
     st.session_state["current_pdf"] = file_path
     if "processed_docs" not in st.session_state:
         st.session_state["processed_docs"] = {}
-    if file_path not in st.session_state["processed_docs"]:
 
+    if file_path not in st.session_state["processed_docs"]:
         progress = st.progress(0)
         status = st.empty()
 
-        status.spinner("📄 Extracting text from document...")
-        progress.progress(25)
+        status.info("📄 Extracting text from document...")
+        progress.progress(20)
+        time.sleep(0.3)
 
-        status.spinner("✂️ Chunking document...")
+        status.info("✂️ Chunking document...")
         progress.progress(50)
+        time.sleep(0.3)
 
-        status.spinner("🧠 Generating embeddings...")
+        status.info("🧠 Generating embeddings...")
         progress.progress(75)
+        time.sleep(0.3)
 
-        status.spinner("📚 Building vector index...")
+        status.info("📚 Building vector index...")
         chatbot(file_path)
-
         progress.progress(100)
-        status.write("✅ Document ready!")
+        status.success("✅ Document ready!")
 
         st.session_state["processed_docs"][file_path] = True
-
     else:
         st.info("✅ Document already processed")
-
 
 # ----------------------------
 # 🔹 Cached answers per session
@@ -55,7 +55,11 @@ def get_answer_cached(question, top_k=3, use_openai=False, user_api_key=None):
     st.session_state["answer_cache"][cache_key] = ans
     return ans
 
+# ----------------------------
+# Persistent Chroma DB for demo
+# ----------------------------
 chroma_dir = "./chroma_demo_db"
+os.makedirs(chroma_dir, exist_ok=True)
 client = PersistentClient(path=chroma_dir)
 collection = client.get_or_create_collection("demo_collection")
 
@@ -63,7 +67,6 @@ collection = client.get_or_create_collection("demo_collection")
 # 🎨 Streamlit Page Config
 # ----------------------------
 st.set_page_config(page_title="AI Document Q&A Assistant", page_icon="🤖", layout="wide")
-
 st.title("🤖 AI Document Q&A Assistant")
 st.markdown("""
 Welcome to **AI Document Assistant** — a smart RAG-powered chatbot that can answer your questions based on your uploaded PDF.  
@@ -71,16 +74,14 @@ Upload your document, choose your mode, and chat naturally with your document! �
 """)
 st.info("""
 📌 **How to use this app**
-
 1️⃣ Upload a PDF document  
 2️⃣ Wait for document indexing  
 3️⃣ Ask questions about the content  
-4️⃣ View retrieved sources for transparency  
+4️⃣ View retrieved sources  
 
 Tip: Try asking **summary, key findings, or conclusions**
 """)
 st.divider()
-
 
 # ----------------------------
 # ⚙️ Mode Selection
@@ -88,45 +89,29 @@ st.divider()
 st.subheader("⚙️ Choose How You Want to Run the Chatbot")
 mode = st.radio("Select Mode:", ["Use OpenAI API (Recommended)", "Use Normal Mode (Local Model)"], index=1)
 user_api_key = None
-
 if mode == "Use OpenAI API (Recommended)":
     st.info("💡 OpenAI mode gives more fluent, accurate responses. Enter your API key (not stored).")
     user_api_key = st.text_input("🔑 Enter your OpenAI API key:", type="password")
 else:
     st.warning("⚠️ Local mode may not always be perfectly accurate — use OpenAI mode for professional work.")
 
-
 # ----------------------------
-# 🧪 Demo PDF
+# 🧪 Demo PDF (preloaded)
 # ----------------------------
-st.subheader("🧪 Try a Demo Document")
+st.subheader("🧪 Demo Document")
 demo_pdf_path = "uploaded_docs/Report_on_AI.pdf"
-#if "demo_loaded" not in st.session_state:
-#    st.session_state["demo_loaded"] = False
-
-#if os.path.exists(demo_pdf_path):
-#    if st.button("📄 Load Demo Document"):
-#        if not st.session_state["demo_loaded"]:
-#            process_pdf(demo_pdf_path)
-#            st.session_state["demo_loaded"] = True
-#            st.success("Demo document loaded!")
-#        else:
-#            st.info("Demo document already loaded.")
-#else:
-#    st.warning("Demo PDF not found. Add one to uploaded_docs folder.")
-
 if os.path.exists(demo_pdf_path):
     st.info("💡 Demo document is preloaded. Chat instantly!")
     st.session_state["demo_loaded"] = True
+    process_pdf(demo_pdf_path)
 else:
     st.warning("Demo PDF not found. Add one to uploaded_docs folder.")
 
 # ----------------------------
-# 📄 Document Upload
+# 📄 Upload PDF
 # ----------------------------
 st.subheader("📤 Upload your document")
 uploaded_file = st.file_uploader("Upload a PDF file", type=["pdf"])
-
 if uploaded_file:
     os.makedirs("uploaded_docs", exist_ok=True)
     file_path = os.path.join("uploaded_docs", uploaded_file.name)
@@ -134,7 +119,6 @@ if uploaded_file:
         f.write(uploaded_file.getbuffer())
     st.success(f"✅ Uploaded `{uploaded_file.name}` successfully!")
     process_pdf(file_path)
-
 
 # ----------------------------
 # 💬 Chat Interface
@@ -149,7 +133,6 @@ if st.session_state.get("current_pdf") or st.session_state.get("demo_loaded"):
     - What conclusions are mentioned?
     """)
 
-    # Initialize chat history
     if "chat_history" not in st.session_state:
         st.session_state["chat_history"] = []
 
@@ -173,21 +156,18 @@ if st.session_state.get("current_pdf") or st.session_state.get("demo_loaded"):
                     use_openai=True if user_api_key else False
                 )
                 st.markdown(answer)
-                # Show retrieved context
                 with st.expander("🔍 Retrieved Sources"):
                     for i, (doc, meta) in enumerate(zip(docs, metas)):
                         st.markdown(f"**Source Chunk {meta['chunk_id']}**")
                         st.write(doc[:500] + "...")
         st.session_state["chat_history"].append({"role": "assistant", "content": answer})
 
-
 # ----------------------------
-# 📊 Document Insights / Summary
+# 📊 Document Summary / Insights
 # ----------------------------
 st.divider()
 st.subheader("📊 Document Insights")
-
-if st.button("Generate Document Summary") and st.session_state.get("current_pdf"):
+if st.button("Generate Document Summary"):
     with st.spinner("Analyzing document..."):
         summary = generate_document_summary(
             use_openai=True if user_api_key else False,
@@ -197,17 +177,16 @@ if st.button("Generate Document Summary") and st.session_state.get("current_pdf"
     st.write(summary)
     st.success("🎯 Document summary generated!")
 
+# ----------------------------
+# 🧹 Reset Chat (at bottom)
+# ----------------------------
 st.divider()
-# ----------------------------
-# Reset Chat
-# ----------------------------
 if st.button("🧹 Reset Chat"):
     st.session_state["chat_history"] = []
+    st.info("Chat history cleared!")
 
 # ----------------------------
 # 🧾 Footer
 # ----------------------------
 st.markdown("---")
 st.caption("Built with ❤️ by Sachin Kumar Gupta | Powered by RAG, Sentence Transformers & Streamlit")
-
-
