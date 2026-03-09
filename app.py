@@ -1,5 +1,6 @@
 import streamlit as st
 from RAG_chatbot import chatbot, demo_query, answer_with_sources, generate_document_summary
+from chromadb import PersistentClient
 import os
 import time
 
@@ -11,9 +12,27 @@ def process_pdf(file_path):
     if "processed_docs" not in st.session_state:
         st.session_state["processed_docs"] = {}
     if file_path not in st.session_state["processed_docs"]:
-        with st.spinner("Processing document..."):
-            chatbot(file_path)
-            st.session_state["processed_docs"][file_path] = True
+
+        progress = st.progress(0)
+        status = st.empty()
+
+        status.spinner("📄 Extracting text from document...")
+        progress.progress(25)
+
+        status.spinner("✂️ Chunking document...")
+        progress.progress(50)
+
+        status.spinner("🧠 Generating embeddings...")
+        progress.progress(75)
+
+        status.spinner("📚 Building vector index...")
+        chatbot(file_path)
+
+        progress.progress(100)
+        status.write("✅ Document ready!")
+
+        st.session_state["processed_docs"][file_path] = True
+
     else:
         st.info("✅ Document already processed")
 
@@ -36,6 +55,9 @@ def get_answer_cached(question, top_k=3, use_openai=False, user_api_key=None):
     st.session_state["answer_cache"][cache_key] = ans
     return ans
 
+chroma_dir = "./chroma_demo_db"
+client = PersistentClient(path=chroma_dir)
+collection = client.get_or_create_collection("demo_collection")
 
 # ----------------------------
 # 🎨 Streamlit Page Config
@@ -79,20 +101,25 @@ else:
 # ----------------------------
 st.subheader("🧪 Try a Demo Document")
 demo_pdf_path = "uploaded_docs/Report_on_AI.pdf"
-if "demo_loaded" not in st.session_state:
-    st.session_state["demo_loaded"] = False
+#if "demo_loaded" not in st.session_state:
+#    st.session_state["demo_loaded"] = False
+
+#if os.path.exists(demo_pdf_path):
+#    if st.button("📄 Load Demo Document"):
+#        if not st.session_state["demo_loaded"]:
+#            process_pdf(demo_pdf_path)
+#            st.session_state["demo_loaded"] = True
+#            st.success("Demo document loaded!")
+#        else:
+#            st.info("Demo document already loaded.")
+#else:
+#    st.warning("Demo PDF not found. Add one to uploaded_docs folder.")
 
 if os.path.exists(demo_pdf_path):
-    if st.button("📄 Load Demo Document"):
-        if not st.session_state["demo_loaded"]:
-            process_pdf(demo_pdf_path)
-            st.session_state["demo_loaded"] = True
-            st.success("Demo document loaded!")
-        else:
-            st.info("Demo document already loaded.")
+    st.info("💡 Demo document is preloaded. Chat instantly!")
+    st.session_state["demo_loaded"] = True
 else:
     st.warning("Demo PDF not found. Add one to uploaded_docs folder.")
-
 
 # ----------------------------
 # 📄 Document Upload
@@ -170,7 +197,7 @@ if st.button("Generate Document Summary") and st.session_state.get("current_pdf"
     st.write(summary)
     st.success("🎯 Document summary generated!")
 
-
+st.divider()
 # ----------------------------
 # Reset Chat
 # ----------------------------
@@ -182,4 +209,5 @@ if st.button("🧹 Reset Chat"):
 # ----------------------------
 st.markdown("---")
 st.caption("Built with ❤️ by Sachin Kumar Gupta | Powered by RAG, Sentence Transformers & Streamlit")
+
 
