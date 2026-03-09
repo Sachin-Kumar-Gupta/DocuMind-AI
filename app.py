@@ -41,8 +41,7 @@ def process_pdf(file_path, demo=False):
     progress.progress(100)
     status.write("✅ Document ready!")
     st.session_state["processed_docs"][file_path] = True
-    else:
-        st.info("✅ Document already processed")
+
 
 # ----------------------------
 # 🔹 Cached answers per session
@@ -197,4 +196,5 @@ if st.button("🧹 Reset Chat"):
 # ----------------------------
 st.markdown("---")
 st.caption("Built with ❤️ by Sachin Kumar Gupta | Powered by RAG, Sentence Transformers & Streamlit")
+
 
