@@ -7,33 +7,40 @@ import time
 # ---------------------------
 # 🔹 Process PDF (with caching & progress)
 # ---------------------------
-def process_pdf(file_path):
+import os
+
+def process_pdf(file_path, demo=False):
     st.session_state["current_pdf"] = file_path
     if "processed_docs" not in st.session_state:
         st.session_state["processed_docs"] = {}
 
-    if file_path not in st.session_state["processed_docs"]:
-        progress = st.progress(0)
-        status = st.empty()
+    # Path where embeddings/db are stored
+    chroma_dir = "./chroma_demo_db" if demo else f"./chroma_{os.path.basename(file_path)}"
 
-        status.info("📄 Extracting text from document...")
-        progress.progress(20)
-        time.sleep(0.3)
-
-        status.info("✂️ Chunking document...")
-        progress.progress(50)
-        time.sleep(0.3)
-
-        status.info("🧠 Generating embeddings...")
-        progress.progress(75)
-        time.sleep(0.3)
-
-        status.info("📚 Building vector index...")
-        chatbot(file_path)
-        progress.progress(100)
-        status.success("✅ Document ready!")
-
+    # Skip processing if collection already exists
+    if os.path.exists(chroma_dir) and os.listdir(chroma_dir):
+        st.info("✅ Document already processed in persistent storage.")
         st.session_state["processed_docs"][file_path] = True
+        return
+
+    # Otherwise, process the PDF
+    progress = st.progress(0)
+    status = st.empty()
+    status.spinner("📄 Extracting text from document...")
+    progress.progress(25)
+
+    status.spinner("✂️ Chunking document...")
+    progress.progress(50)
+
+    status.spinner("🧠 Generating embeddings...")
+    progress.progress(75)
+
+    status.spinner("📚 Building vector index...")
+    chatbot(file_path)  # This will create Chroma collection
+
+    progress.progress(100)
+    status.write("✅ Document ready!")
+    st.session_state["processed_docs"][file_path] = True
     else:
         st.info("✅ Document already processed")
 
@@ -190,3 +197,4 @@ if st.button("🧹 Reset Chat"):
 # ----------------------------
 st.markdown("---")
 st.caption("Built with ❤️ by Sachin Kumar Gupta | Powered by RAG, Sentence Transformers & Streamlit")
+
