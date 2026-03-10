@@ -318,33 +318,19 @@ def demo_query(question, collection, source_file=None, top_k=3, use_openai=False
 # ========================================================
 # 8️ Answer + Sources helper (for UI transparency)
 # ========================================================
-def answer_with_sources(
-    question: str,
-    collection,
-    source_file=None,
-    top_k: int = 3,
-    use_openai=False,
-    user_api_key=None
-):
-    """
-    Retrieve top-k chunks and generate answer, returning answer + docs + metadata.
-    Useful for UI transparency.
-    """
-    res = retrieve(
-        query=question,
-        collection=collection,
-        top_k=top_k,
-        source_file=source_file
-    )
+def answer_with_sources(q, top_k=3, use_openai=False, user_api_key=None):
+    collection = st.session_state.get("current_collection")
+    if not collection:
+        return "No collection loaded.", [], []
 
+    res = retrieve(q, collection=collection, top_k=top_k)
     docs = res["documents"][0]
     metas = res["metadatas"][0]
 
-    ans = generate_answer(
-        question,
-        docs,
-        user_api_key if use_openai else None
-    )
+    if use_openai:
+        ans = generate_answer_openai(q, docs, user_api_key=user_api_key)
+    else:
+        ans = generate_answer_local(q, docs)
 
     return ans, docs, metas
 
