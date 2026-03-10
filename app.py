@@ -1,6 +1,6 @@
 import streamlit as st
 import os
-from RAG_chatbot_v2 import (
+from RAG_chatbot import (
     extract_text_from_pdf,
     chunk_text,
     create_vector_db,
@@ -160,3 +160,4 @@ if st.button("🧹 Reset Chat"):
 
 st.markdown("---")
 st.caption("Built with ❤️ by Sachin Kumar Gupta | Powered by RAG, Sentence Transformers & Streamlit")
+
