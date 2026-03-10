@@ -3,6 +3,7 @@ import os
 from RAG_chatbot import (
     extract_text_from_pdf,
     chunk_text,
+    embed_texts,
     create_vector_db,
     ingest_docs,
     answer_with_sources,
@@ -64,36 +65,36 @@ if uploaded_file:
 # ----------------------------
 # Process PDF
 # ----------------------------
-def process_pdf(pdf_path):
-    """Extract, chunk, embed, ingest."""
-    st.session_state["processed_docs"] = getattr(st.session_state, "processed_docs", {})
+def process_pdf(file_path):
+    st.session_state["current_pdf"] = file_path
+    if "processed_docs" not in st.session_state:
+        st.session_state["processed_docs"] = {}
 
-    if pdf_path in st.session_state["processed_docs"]:
-        st.info("✅ Document already processed.")
-        return
+    if file_path not in st.session_state["processed_docs"]:
+        progress = st.progress(0)
+        status = st.empty()
 
-    progress = st.progress(0)
-    status = st.empty()
+        status.spinner("📄 Extracting text from document...")
+        raw_text = extract_text_from_pdf(file_path)
+        progress.progress(25)
 
-    # Extract
-    status.text("📄 Extracting text...")
-    raw_text = extract_text_from_pdf(pdf_path)
-    progress.progress(20)
+        status.spinner("✂️ Chunking document...")
+        chunks = chunk_text(raw_text)
+        progress.progress(50)
 
-    # Chunk
-    status.text("✂️ Chunking text...")
-    chunks = chunk_text(raw_text)
-    progress.progress(50)
+        status.spinner("🧠 Generating embeddings...")
+        embeddings = embed_texts(chunks)
+        progress.progress(75)
 
-    # Create vector DB & ingest
-    status.text("🧠 Embedding and indexing...")
-    client, collection = create_vector_db(pdf_path)
-    embeddings = embed_texts(chunks)
-    ingest_docs(collection, chunks, embeddings)
-    progress.progress(100)
+        status.spinner("📚 Building vector index...")
+        client, collection = create_vector_db(file_path)
+        ingest_docs(collection, chunks, embeddings)  # ✅ Pass embeddings
+        progress.progress(100)
+        status.write("✅ Document ready!")
 
-    status.text("✅ Document ready!")
-    st.session_state["processed_docs"][pdf_path] = collection
+        st.session_state["processed_docs"][file_path] = True
+    else:
+        st.info("✅ Document already processed")
 
 if "current_pdf" in st.session_state:
     process_pdf(st.session_state["current_pdf"])
@@ -161,5 +162,6 @@ if st.button("🧹 Reset Chat"):
 
 st.markdown("---")
 st.caption("Built with ❤️ by Sachin Kumar Gupta | Powered by RAG, Sentence Transformers & Streamlit")
+
 
 
