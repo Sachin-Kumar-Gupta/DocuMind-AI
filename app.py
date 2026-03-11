@@ -168,4 +168,5 @@ if st.button("🧹 Reset Chat"):
     st.session_state["chat_history"] = []
 
 st.markdown("---")
-st.footer("Built with ❤️ by Sachin Kumar Gupta | Powered by RAG, Sentence Transformers & Streamlit")
+st.caption("Built with ❤️ by Sachin Kumar Gupta | Powered by RAG, Sentence Transformers & Streamlit")
+
