@@ -88,7 +88,7 @@ def process_pdf(file_path):
 
         status.spinner("📚 Building vector index...")
         client, collection = create_vector_db(file_path)
-        ingest_docs(collection, chunks, embeddings)  # ✅ Pass embeddings
+        ingest_docs(collection, chunks, embeddings,file_path)  # ✅ Pass embeddings
         progress.progress(100)
         status.write("✅ Document ready!")
 
@@ -163,6 +163,7 @@ if st.button("🧹 Reset Chat"):
 
 st.markdown("---")
 st.caption("Built with ❤️ by Sachin Kumar Gupta | Powered by RAG, Sentence Transformers & Streamlit")
+
 
 
 
