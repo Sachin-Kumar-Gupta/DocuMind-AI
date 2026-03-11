@@ -27,6 +27,7 @@ from chromadb.config import Settings
 
 # lazy global to avoid repeated loads
 _ce_model = None
+_reranker = None
 
 # Embedding model
 #embed_model = "sentence-transformers/all-mpnet-base-v2"
@@ -121,9 +122,9 @@ def ingest_docs(collection, chunks: List[str],embeddings: List[List[float]]):
 
 # Retrival function
 def retrieve(query: str,collection, top_k: int = 3,source_file=None):
-    global _ce_model
-    if _ce_model is None:
-        _ce_model = CrossEncoder("cross-encoder/ms-marco-MiniLM-L6-v2")  # free + small
+    global _reranker
+    if _reranker is None:
+        _reranker = CrossEncoder("cross-encoder/ms-marco-MiniLM-L6-v2")
 
     model = get_embedder()
 
@@ -141,7 +142,7 @@ def retrieve(query: str,collection, top_k: int = 3,source_file=None):
     dists = res["distances"][0]
     # Cross-encoder rerank
     pairs = [(query, d) for d in docs]
-    scores = _ce_model.predict(pairs, batch_size=8)
+    scores = _reranker.predict(pairs, batch_size=8)
     order = np.argsort(scores)[::-1][:top_k]  # high -> low
     reranked_docs = [docs[i] for i in order]
     reranked_metas = [metas[i] for i in order]
