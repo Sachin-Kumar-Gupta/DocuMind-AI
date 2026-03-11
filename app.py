@@ -148,7 +148,8 @@ if "current_pdf" in st.session_state:
         with st.spinner("📝 Generating summary..."):
             summary = generate_document_summary(
                 use_openai=True if user_api_key else False,
-                user_api_key=user_api_key
+                user_api_key=user_api_key,
+                collection=collection
             )
             st.markdown("### 📄 Document Summary")
             st.write(summary)
@@ -162,6 +163,7 @@ if st.button("🧹 Reset Chat"):
 
 st.markdown("---")
 st.caption("Built with ❤️ by Sachin Kumar Gupta | Powered by RAG, Sentence Transformers & Streamlit")
+
 
 
 
