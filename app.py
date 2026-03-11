@@ -9,7 +9,6 @@ from RAG_chatbot import (
     answer_with_sources,
     generate_document_summary
 )
-from chromadb import PersistentClient
 
 # ----------------------------
 # Streamlit config
@@ -20,7 +19,10 @@ st.set_page_config(
     layout="wide"
 )
 st.title("🤖 AI Document Q&A Assistant")
-st.markdown("Welcome to **AI Document Assistant** — ask questions about your PDFs.")
+
+st.markdown("""
+Welcome to **AI Document Assistant** — ask questions about your PDFs.
+""")
 st.divider()
 
 # ----------------------------
@@ -60,24 +62,40 @@ if uploaded_file:
     st.session_state["current_pdf"] = file_path
 
 # ----------------------------
-# PDF Processing
+# Safe caching for chunks & embeddings only
 # ----------------------------
 @st.cache_data(show_spinner=False)
-def cached_process_pdf(file_path):
-    """Extract, chunk, embed, and index PDF."""
-    client, collection = create_vector_db(file_path)
+def cached_chunks_and_embeddings(file_path):
     raw_text = extract_text_from_pdf(file_path)
     chunks = chunk_text(raw_text)
     embeddings = embed_texts(chunks)
+    return chunks, embeddings
+
+# ----------------------------
+# Process PDF (live DB objects)
+# ----------------------------
+def process_pdf(file_path):
+    """Process PDF and return live collection (not cached)."""
+    client, collection = create_vector_db(file_path)
+
+    # Only cache chunks & embeddings
+    chunks, embeddings = cached_chunks_and_embeddings(file_path)
+
+    # Ingest to DB (live object)
     ingest_docs(collection, chunks, embeddings, file_path)
+
     return collection
 
+# ----------------------------
+# Handle PDF processing
+# ----------------------------
 if "current_pdf" in st.session_state:
     file_path = st.session_state["current_pdf"]
     st.session_state.setdefault("processed_docs", {})
+
     if file_path not in st.session_state["processed_docs"]:
         with st.spinner("📄 Processing document..."):
-            collection = cached_process_pdf(file_path)
+            collection = process_pdf(file_path)
             st.session_state["processed_docs"][file_path] = collection
         st.success("✅ Document ready!")
     else:
@@ -91,13 +109,15 @@ if "current_pdf" in st.session_state:
     st.subheader("💬 Chat with your document")
     st.caption("Try asking questions like: summary, key findings, conclusions.")
 
-    st.session_state.setdefault("chat_history", [])
+    if "chat_history" not in st.session_state:
+        st.session_state["chat_history"] = []
 
     # Display chat history
     for chat in st.session_state["chat_history"]:
         with st.chat_message(chat["role"]):
             st.markdown(chat["content"])
 
+    # User input
     user_input = st.chat_input("Ask your question...")
     if user_input:
         st.chat_message("user").markdown(user_input)
@@ -105,26 +125,21 @@ if "current_pdf" in st.session_state:
 
         with st.chat_message("assistant"):
             with st.spinner("🤔 Thinking..."):
-                try:
-                    answer, docs, metas = answer_with_sources(
-                        q=user_input,
-                        top_k=3,
-                        source_file=os.path.basename(st.session_state["current_pdf"]),
-                        use_openai=True if user_api_key else False,
-                        user_api_key=user_api_key
-                    )
-                except Exception as e:
-                    answer = f"⚠️ Error: {str(e)}"
-                    docs, metas = [], []
-
+                answer, docs, metas = answer_with_sources(
+                    user_input,
+                    collection=collection,
+                    source_file=os.path.basename(st.session_state["current_pdf"]),
+                    top_k=3,
+                    use_openai=True if user_api_key else False,
+                    user_api_key=user_api_key
+                )
                 st.markdown(answer)
 
-                # Display retrieved chunks
-                if docs:
-                    with st.expander("🔍 Retrieved Sources"):
-                        for i, (doc, meta) in enumerate(zip(docs, metas)):
-                            st.markdown(f"**Chunk {meta.get('chunk_id','?')} (Source: {meta.get('source','?')})**")
-                            st.write(doc[:300] + ("..." if len(doc) > 300 else ""))
+                # Show retrieved sources
+                with st.expander("🔍 Retrieved Sources"):
+                    for i, (doc, meta) in enumerate(zip(docs, metas)):
+                        st.markdown(f"**Chunk {meta['chunk_id']}**")
+                        st.write(doc[:500] + "...")
 
         st.session_state["chat_history"].append({"role": "assistant", "content": answer})
 
@@ -134,30 +149,20 @@ if "current_pdf" in st.session_state:
 if "current_pdf" in st.session_state:
     st.divider()
     st.subheader("📊 Document Summary")
-    summary_cache = st.session_state.setdefault("summary_cache", {})
-
     if st.button("Generate Summary"):
-        file_key = st.session_state["current_pdf"]
-        if file_key in summary_cache:
-            summary = summary_cache[file_key]
-        else:
-            with st.spinner("📝 Generating summary..."):
-                try:
-                    summary = generate_document_summary(
-                        use_openai=True if user_api_key else False,
-                        user_api_key=user_api_key,
-                        top_chunks=10
-                    )
-                except Exception as e:
-                    summary = f"⚠️ Error generating summary: {str(e)}"
-                summary_cache[file_key] = summary
-
-        st.markdown("### 📄 Document Summary")
-        st.write(summary)
-        st.success("🎯 Summary generated!")
+        with st.spinner("📝 Generating summary..."):
+            # Summary can be cached safely (plain text)
+            summary = generate_document_summary(
+                use_openai=True if user_api_key else False,
+                user_api_key=user_api_key,
+                top_chunks=10
+            )
+            st.markdown("### 📄 Document Summary")
+            st.write(summary)
+            st.success("🎯 Summary generated!")
 
 # ----------------------------
-# Reset Chat
+# Reset
 # ----------------------------
 if st.button("🧹 Reset Chat"):
     st.session_state["chat_history"] = []
