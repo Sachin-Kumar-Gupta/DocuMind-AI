@@ -348,15 +348,39 @@ def answer_with_sources(q, top_k=3, source_file=None, use_openai=False, user_api
 # ========================================================
 # 9️⃣ Document Summary
 # ========================================================
-def generate_document_summary(collection, source_file=None, use_openai=False, user_api_key=None, top_chunks=10):
-    res = collection.query(
-        query_embeddings=[],
-        n_results=1000,
-        include=["documents", "metadatas"],
-        where={"source": source_file} if source_file else {}
-    )
-    docs = res["documents"][0][:top_chunks]
-    return generate_answer("Summarize the document in bullet points.", docs, user_api_key if use_openai else None)
+def generate_document_summary(use_openai=False, user_api_key=None, top_chunks=10):
+    """Generate bullet-point summary for the current PDF."""
+
+    if "current_pdf" not in st.session_state:
+        return "No document loaded."
+
+    source_file = os.path.basename(st.session_state["current_pdf"])
+
+    # Fetch all chunks
+    res = collection.get(include=["documents", "metadatas"])
+
+    # Filter chunks for the current PDF
+    docs = [
+        d for d, m in zip(res["documents"], res["metadatas"])
+        if m.get("source") == source_file
+    ][:top_chunks]
+
+    if not docs:
+        return "No chunks found for the document."
+
+    if use_openai:
+        prompt = "Summarize the following document in bullet points:\n\n" + "\n\n".join(docs)
+        client = OpenAI(api_key=user_api_key or os.getenv("OPENAI_API_KEY"))
+        resp = client.chat.completions.create(
+            model=OPENAI_MODEL,
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0,
+            max_tokens=400
+        )
+        return postprocess_answer(resp["choices"][0]["message"]["content"])
+    else:
+        # Use your local T5 generator
+        return generate_answer_local("Summarize the document in bullet points.", docs, max_tokens=250)
 
 '''if __name__ == "__main__":
     # Use collection.count() to detect empty store instead of len(collection.get())
