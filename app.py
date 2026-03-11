@@ -20,10 +20,7 @@ st.set_page_config(
     layout="wide"
 )
 st.title("🤖 AI Document Q&A Assistant")
-
-st.markdown("""
-Welcome to **AI Document Assistant** — ask questions about your PDFs.
-""")
+st.markdown("Welcome to **AI Document Assistant** — ask questions about your PDFs.")
 st.divider()
 
 # ----------------------------
@@ -63,42 +60,28 @@ if uploaded_file:
     st.session_state["current_pdf"] = file_path
 
 # ----------------------------
-# Process PDF
+# PDF Processing
 # ----------------------------
-def process_pdf(file_path):
-    st.session_state["current_pdf"] = file_path
-    if "processed_docs" not in st.session_state:
-        st.session_state["processed_docs"] = {}
-
-    if file_path not in st.session_state["processed_docs"]:
-        progress = st.progress(0)
-        status = st.empty()
-
-        status.spinner("📄 Extracting text from document...")
-        raw_text = extract_text_from_pdf(file_path)
-        progress.progress(25)
-
-        status.spinner("✂️ Chunking document...")
-        chunks = chunk_text(raw_text)
-        progress.progress(50)
-
-        status.spinner("🧠 Generating embeddings...")
-        embeddings = embed_texts(chunks)
-        progress.progress(75)
-
-        status.spinner("📚 Building vector index...")
-        client, collection = create_vector_db(file_path)
-        ingest_docs(collection, chunks, embeddings,file_path)  # ✅ Pass embeddings
-        progress.progress(100)
-        status.write("✅ Document ready!")
-
-        st.session_state["processed_docs"][file_path] = collection
-    else:
-        st.info("✅ Document already processed")
+@st.cache_data(show_spinner=False)
+def cached_process_pdf(file_path):
+    """Extract, chunk, embed, and index PDF."""
+    client, collection = create_vector_db(file_path)
+    raw_text = extract_text_from_pdf(file_path)
+    chunks = chunk_text(raw_text)
+    embeddings = embed_texts(chunks)
+    ingest_docs(collection, chunks, embeddings, file_path)
+    return collection
 
 if "current_pdf" in st.session_state:
-    process_pdf(st.session_state["current_pdf"])
-    collection = st.session_state["processed_docs"][st.session_state["current_pdf"]]
+    file_path = st.session_state["current_pdf"]
+    st.session_state.setdefault("processed_docs", {})
+    if file_path not in st.session_state["processed_docs"]:
+        with st.spinner("📄 Processing document..."):
+            collection = cached_process_pdf(file_path)
+            st.session_state["processed_docs"][file_path] = collection
+        st.success("✅ Document ready!")
+    else:
+        collection = st.session_state["processed_docs"][file_path]
 
 # ----------------------------
 # Chat Interface
@@ -108,9 +91,9 @@ if "current_pdf" in st.session_state:
     st.subheader("💬 Chat with your document")
     st.caption("Try asking questions like: summary, key findings, conclusions.")
 
-    if "chat_history" not in st.session_state:
-        st.session_state["chat_history"] = []
+    st.session_state.setdefault("chat_history", [])
 
+    # Display chat history
     for chat in st.session_state["chat_history"]:
         with st.chat_message(chat["role"]):
             st.markdown(chat["content"])
@@ -122,19 +105,26 @@ if "current_pdf" in st.session_state:
 
         with st.chat_message("assistant"):
             with st.spinner("🤔 Thinking..."):
-                answer, docs, metas = answer_with_sources(
-                    user_input,
-                    collection=collection,
-                    source_file=os.path.basename(st.session_state["current_pdf"]),
-                    top_k=3,
-                    use_openai=True if user_api_key else False,
-                    user_api_key=user_api_key
-                )
+                try:
+                    answer, docs, metas = answer_with_sources(
+                        q=user_input,
+                        top_k=3,
+                        source_file=os.path.basename(st.session_state["current_pdf"]),
+                        use_openai=True if user_api_key else False,
+                        user_api_key=user_api_key
+                    )
+                except Exception as e:
+                    answer = f"⚠️ Error: {str(e)}"
+                    docs, metas = [], []
+
                 st.markdown(answer)
-                with st.expander("🔍 Retrieved Sources"):
-                    for i, (doc, meta) in enumerate(zip(docs, metas)):
-                        st.markdown(f"**Chunk {meta['chunk_id']}**")
-                        st.write(doc[:500] + "...")
+
+                # Display retrieved chunks
+                if docs:
+                    with st.expander("🔍 Retrieved Sources"):
+                        for i, (doc, meta) in enumerate(zip(docs, metas)):
+                            st.markdown(f"**Chunk {meta.get('chunk_id','?')} (Source: {meta.get('source','?')})**")
+                            st.write(doc[:300] + ("..." if len(doc) > 300 else ""))
 
         st.session_state["chat_history"].append({"role": "assistant", "content": answer})
 
@@ -144,28 +134,33 @@ if "current_pdf" in st.session_state:
 if "current_pdf" in st.session_state:
     st.divider()
     st.subheader("📊 Document Summary")
+    summary_cache = st.session_state.setdefault("summary_cache", {})
+
     if st.button("Generate Summary"):
-        with st.spinner("📝 Generating summary..."):
-            summary = generate_document_summary(
-                use_openai=True if user_api_key else False,
-                user_api_key=user_api_key,
-                collection=collection
-            )
-            st.markdown("### 📄 Document Summary")
-            st.write(summary)
-            st.success("🎯 Summary generated!")
+        file_key = st.session_state["current_pdf"]
+        if file_key in summary_cache:
+            summary = summary_cache[file_key]
+        else:
+            with st.spinner("📝 Generating summary..."):
+                try:
+                    summary = generate_document_summary(
+                        use_openai=True if user_api_key else False,
+                        user_api_key=user_api_key,
+                        top_chunks=10
+                    )
+                except Exception as e:
+                    summary = f"⚠️ Error generating summary: {str(e)}"
+                summary_cache[file_key] = summary
+
+        st.markdown("### 📄 Document Summary")
+        st.write(summary)
+        st.success("🎯 Summary generated!")
 
 # ----------------------------
-# Reset
+# Reset Chat
 # ----------------------------
 if st.button("🧹 Reset Chat"):
     st.session_state["chat_history"] = []
 
 st.markdown("---")
-st.caption("Built with ❤️ by Sachin Kumar Gupta | Powered by RAG, Sentence Transformers & Streamlit")
-
-
-
-
-
-
+st.footer("Built with ❤️ by Sachin Kumar Gupta | Powered by RAG, Sentence Transformers & Streamlit")
