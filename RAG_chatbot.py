@@ -318,7 +318,7 @@ def demo_query(question, collection, source_file=None, top_k=3, use_openai=False
 # ========================================================
 # 8️ Answer + Sources helper (for UI transparency)
 # ========================================================
-def answer_with_sources(q, top_k=3, use_openai=False, user_api_key=None, collection=None):
+def answer_with_sources(q, top_k=3, source_file=None, use_openai=False, user_api_key=None, collection=None):
     """
     Returns: answer, retrieved_docs, metadata
     """
