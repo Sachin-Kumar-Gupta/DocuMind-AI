@@ -318,8 +318,12 @@ def demo_query(question, collection, source_file=None, top_k=3, use_openai=False
 # ========================================================
 # 8️ Answer + Sources helper (for UI transparency)
 # ========================================================
-def answer_with_sources(q, top_k=3, use_openai=False, user_api_key=None):
-    collection = st.session_state.get("current_collection")
+def answer_with_sources(q, top_k=3, use_openai=False, user_api_key=None, collection=None):
+    """
+    Returns: answer, retrieved_docs, metadata
+    """
+    if collection is None:
+        collection = st.session_state.get("current_collection")
     if not collection:
         return "No collection loaded.", [], []
 
@@ -333,7 +337,6 @@ def answer_with_sources(q, top_k=3, use_openai=False, user_api_key=None):
         ans = generate_answer_local(q, docs)
 
     return ans, docs, metas
-
 # ========================================================
 # 9️⃣ Document Summary
 # ========================================================
