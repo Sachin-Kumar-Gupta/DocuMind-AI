@@ -105,7 +105,7 @@ def ingest_docs(collection, chunks: List[str],embeddings: List[List[float]]):
     print("Document already indexed. Skipping embedding.")
     return
   ids = [f"chunk_{i}" for i in range(len(chunks))]
-  metadatas = [{"chunk_id": i} for i in range(len(chunks))]
+  metadatas = [{"chunk_id": i, "source": os.path.basename(pdf_path)} for i in range(len(chunks))]
   collection.add(
       ids=ids,
       documents=chunks,
@@ -130,12 +130,19 @@ def retrieve(query: str,collection, top_k: int = 3,source_file=None):
 
     q_emb = model.encode([query], convert_to_numpy=True, normalize_embeddings=True).astype(np.float32).tolist()[0]
     candidate_n = max(top_k * 20, 10)
+    if source_file:
     res = collection.query(
         query_embeddings=[q_emb],
         n_results=candidate_n,
         include=["documents", "distances", "metadatas"],
-        where={"source": source_file} if source_file else {}  # restrict to current file
+        where={"source": source_file}
     )
+    else:
+        res = collection.query(
+            query_embeddings=[q_emb],
+            n_results=candidate_n,
+            include=["documents", "distances", "metadatas"]
+        )
 
     docs = res["documents"][0]
     metas = res["metadatas"][0]
