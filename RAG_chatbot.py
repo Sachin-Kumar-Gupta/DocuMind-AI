@@ -97,7 +97,7 @@ def create_vector_db(pdf_path: str):
         collection = client.create_collection(name=collection_name)
     return client, collection
 
-def ingest_docs(collection, chunks: List[str],embeddings: List[List[float]]):
+def ingest_docs(collection, chunks: List[str],embeddings: List[List[float]],pdf_path: str):
   client = PersistentClient(path=chroma_dir)
 
   # Skip if already indexed
