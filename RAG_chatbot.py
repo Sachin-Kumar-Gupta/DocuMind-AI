@@ -135,6 +135,10 @@ Rules:
 - If answer is not present, say: "I don't know based on the document."
 - Be concise (2-4 sentences).
 - Do not invent facts.
+- Answer using ONLY the information from the context.
+- Do NOT copy numbers, tables, or statistics unless needed.
+- Summarize the information clearly.
+- Answer in 2-3 sentences maximum.
 
 Context:
 {context}
