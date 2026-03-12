@@ -151,8 +151,9 @@ if "current_pdf" in st.session_state:
     st.subheader("📊 Document Summary")
     if st.button("Generate Summary"):
         with st.spinner("📝 Generating summary..."):
-            # Summary can be cached safely (plain text)
             summary = generate_document_summary(
+                collection=collection,
+                pdf_path=st.session_state["current_pdf"],
                 use_openai=True if user_api_key else False,
                 user_api_key=user_api_key,
                 top_chunks=10
@@ -169,4 +170,5 @@ if st.button("🧹 Reset Chat"):
 
 st.markdown("---")
 st.caption("Built with ❤️ by Sachin Kumar Gupta | Powered by RAG, Sentence Transformers & Streamlit")
+
 
