@@ -236,14 +236,14 @@ def answer_with_sources(q, top_k=3, source_file=None, use_openai=False, user_api
 # -------------------------------
 # Document Summary
 # -------------------------------
-def generate_document_summary(use_openai=False, user_api_key=None, top_chunks=10, collection=None):
+def generate_document_summary(pdf_path,use_openai=False, user_api_key=None, top_chunks=10, collection=None):
     import streamlit as st
     if collection is None:
         collection = st.session_state.get("current_collection")
     if not collection or "current_pdf" not in st.session_state:
         return "No document loaded."
 
-    source_file = os.path.basename(st.session_state["current_pdf"])
+    source_file = os.path.basename(pdf_path)
     res = collection.get(include=["documents", "metadatas"])
     docs = [d for d, m in zip(res["documents"], res["metadatas"]) if m.get("source") == source_file][:top_chunks]
     if not docs:
