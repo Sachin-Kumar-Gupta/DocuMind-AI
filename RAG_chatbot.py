@@ -169,7 +169,7 @@ def generate_answer_openai(question, context_chunks, user_api_key=None, max_toke
 def load_local_generator():
     global _local_model, _local_tokenizer
     if _local_model is None:
-        model_name = "google/flan-t5-base"
+        model_name = "google/flan-t5-large"
         print("Loading local generator model...")
         _local_tokenizer = AutoTokenizer.from_pretrained(model_name)
         _local_model = AutoModelForSeq2SeqLM.from_pretrained(model_name)
