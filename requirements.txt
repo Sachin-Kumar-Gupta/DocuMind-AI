@@ -1,16 +1,5 @@
-streamlit
-chromadb
-sentence-transformers
-transformers
-PyPDF2
-openai
-torch
-numpy
-pandas
-pdfplumber
-accelerate
-protobuf
-tqdm
-typing-extensions
-langchain-text-splitters
+streamlit>=1.38,<2
+pandas>=2.2,<4
+openpyxl>=3.1,<4
+openai>=1.30,<3
 
