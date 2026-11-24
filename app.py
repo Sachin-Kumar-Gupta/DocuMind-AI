@@ -310,7 +310,10 @@ st.caption("Monthly customer reviews ko clear themes, product insights aur evide
 
 with st.sidebar:
     st.header("Analysis settings")
-    configured_key = st.secrets.get("OPENAI_API_KEY", "")
+    try:
+        configured_key = st.secrets.get("OPENAI_API_KEY", "")
+    except Exception:
+        configured_key = ""
     api_key = st.text_input(
         "OpenAI API key (optional)",
         value=configured_key,
