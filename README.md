@@ -1,110 +1,41 @@
-# 🤖 DocuMind AI — RAG-Based PDF Q&A Assistant
+# ReviewPulse
 
-**DocuMind AI** is an intelligent **Retrieval-Augmented Generation (RAG)** chatbot that lets you upload any PDF and ask natural language questions about it.  
-It uses **Sentence Transformers**, **ChromaDB**, and **Streamlit** to create a smart, local-first assistant — with an optional **OpenAI GPT mode** for enhanced accuracy and fluency.
+ReviewPulse is a lightweight Streamlit app for monthly e-commerce review analysis. It provides an overview dashboard and a separate chat tab for evidence-based follow-up questions.
 
----
+## What it does
 
-## 🌟 Features
+- Reads CSV and Excel exports and lets the user map review, product, date, and rating columns.
+- Shows review sentiment, product mentions, and common feedback themes.
+- Answers follow-up questions in English, Hindi, or Hinglish and cites matching review rows.
+- Offers two analysis modes:
+  - **OpenAI API:** `gpt-4o-mini` classifies reviews in small batches and answers chat questions. Model inference runs remotely; no large model is downloaded into Streamlit Cloud.
+  - **Local fallback:** a small transparent Hindi/Hinglish keyword lexicon, with no model download or API key. Treat it as approximate; it will miss nuance, sarcasm, and uncommon spellings.
 
-✅ Upload any **PDF document**  
-✅ Ask **natural language questions** about its content  
-✅ Choose between two modes:
-- **💎 OpenAI GPT Mode:** High accuracy & fluent responses  
-- **⚙️ Local Mode (Flan-T5):** 100% free & offline  
+## Run locally
 
-✅ Clean, interactive **Streamlit UI**  
-✅ Stores document embeddings using **ChromaDB**  
-✅ Built entirely in **Python** — no heavy setup required  
+```bash
+python -m venv .venv
+# Windows PowerShell: .\.venv\Scripts\Activate.ps1
+# macOS/Linux: source .venv/bin/activate
+pip install -r requirements.txt
+streamlit run app.py
+```
 
----
+Upload `sample_reviews.csv` to try the interface. Add an OpenAI API key in the sidebar for contextual Hindi/Hinglish classification and chat. The key is held in the Streamlit session and is not written to disk by this app.
 
-## 🧠 Tech Stack
+## Streamlit Community Cloud
 
-| Component | Technology |
-|------------|-------------|
-| Vector Database | 🟣 ChromaDB |
-| Embedding Model | 🧩 `BAAI/bge-large-en` (Sentence Transformers) |
-| Reranker | ⚡ `cross-encoder/ms-marco-MiniLM-L6-v2` |
-| LLM (Local) | 🏠 Flan-T5 Large |
-| LLM (Cloud Option) | ☁️ OpenAI GPT-3.5/4 |
-| Frontend | 💻 Streamlit |
-| PDF Reader | 📄 pdfplumber |
+Deploy this repository with `app.py` as the entry point and `requirements.txt` as the dependency file. The app runs without a key using the approximate local fallback. To enable model-backed analysis, add `OPENAI_API_KEY` in Streamlit secrets or enter a key in the sidebar. The OpenAI API receives the review text in that mode and API usage may incur charges; do not upload sensitive personal information.
 
----
-## 🧩 Example Workflow
+## Input expectations and limits
 
-1. Upload your PDF
+- CSV, XLSX, and XLS uploads are accepted. Recommended columns: review text, product, date, and rating.
+- Up to 1,200 non-empty reviews are analyzed per upload to keep the hosted app responsive. Review text is capped at 1,200 characters per row.
+- Ratings and dates are retained for exploration/display; the first version does not yet use ratings as sentiment labels or compare separate months.
+- The local fallback is intentionally small and explainable, not a replacement for multilingual model analysis. For more reliable Hindi/Hinglish results, use API mode.
+- No uploaded file is deliberately persisted by app code; Streamlit session memory holds the current analysis.
 
-2. Choose OpenAI mode (enter your API key) or Local mode
+## Before using with business data
 
-3. Ask questions like:
-    - What are the key recommendations in this report?
-    - Does the document discuss data privacy?
+The app is an MVP, not a compliance-reviewed service. Confirm your data-sharing requirements before sending customer review text to an external model API. For deployment, keep API credentials in Streamlit secrets or the session input, never commit them.
 
-4. Get accurate, context-based answers 🎯
-
-
-## 📦 Project Structure
-
-📁 DocuMind-AI/
-
-│
-├── app.py                   # Streamlit UI
-
-├── RAG_chatbot.py           # Core RAG pipeline
-
-├── requirements.txt          # Dependencies
-
-├── README.md                 # Documentation
-
-├── .gitignore                # Ignore cache, models, etc.
-
-│
-
-├── 📁 uploaded_docs/          # Uploaded PDFs (auto-created)
-
-├── 📁 chroma_report_db/       # Chroma vector store (auto-created)
-
-└── 📄 sample.pdf (optional)
-
-
-## 💬 Modes Explained
-
-
-| Mode                | Description                      | Accuracy | Cost |
-| ------------------- | -------------------------------- | -------- | ---- |
-| **OpenAI GPT Mode** | Uses GPT-3.5/4 with user API key | ⭐⭐⭐⭐     | Paid |
-| **Local Mode (T5)** | Runs Flan-T5 locally             | ⭐⭐       | Free |
-
-
-**💡 Your OpenAI API key is never stored. It’s used only during your active session.**
-
-
-## 🧑‍💻 Author
-
-
-**👤 Sachin Kumar Gupta**
-
-
-Data Analyst & AI Developer
-
-
-🔗 [LinkedIn](linkedin.com/in/sachingupta-ds)
- | [GitHub](https://github.com/Sachin-Kumar-Gupta)
-
-**App Link :** https://docu-mind-ai.streamlit.app/
-
- ## **❤️ Acknowledgements**
-
-**Built using:**
-
-- Streamlit
-
-- ChromaDB
-
-- Sentence Transformers
-
-- Hugging Face Transformers
-
-- OpenAI API
